@@ -149,6 +149,8 @@ func Run(completeOptions completedServerRunOptions, stopCh <-chan struct{}) erro
 	// To help debugging, immediately log version
 	klog.Infof("Version: %+v", version.Get())
 
+	/*调用 CreateServerChain 构建服务调用链并判断是否启动非安全的 http server，http server
+	链中包含 apiserver 要启动的三个 server，以及为每个 server 注册对应资源的路由*/
 	server, err := CreateServerChain(completeOptions, stopCh)
 	if err != nil {
 		return err
@@ -164,6 +166,8 @@ func Run(completeOptions completedServerRunOptions, stopCh <-chan struct{}) erro
 
 // CreateServerChain creates the apiservers connected via delegation.
 func CreateServerChain(completedOptions completedServerRunOptions, stopCh <-chan struct{}) (*aggregatorapiserver.APIAggregator, error) {
+	// 返回一个 tunneler的interface 和 struct
+	// 如果在启动 apiserver的时候没有带 ssh-user这个参数的话这段不会有什么特别的处理逻辑
 	nodeTunneler, proxyTransport, err := CreateNodeDialer(completedOptions)
 	if err != nil {
 		return nil, err
@@ -398,13 +402,16 @@ func buildGenericConfig(
 	storageFactory *serverstorage.DefaultStorageFactory,
 	lastErr error,
 ) {
+	// 返回一个 设置默认参数的 Config struct
 	genericConfig = genericapiserver.NewConfig(legacyscheme.Codecs)
+	// genericConfig.MergedResourceConfig  里面配置了 apigroup 注册相关的 apiVersion: apps/v1 的一些具体值
+	// 然后给各个apiversion 添加了 bool值  应该是打标签表示 是否能使用 ？
 	genericConfig.MergedResourceConfig = master.DefaultAPIResourceConfigSource()
 
+	// 以下项目都是 主要是 把 启动时带的参数项 & 默认启动参数项给赋值到各个参数中去
 	if lastErr = s.GenericServerRunOptions.ApplyTo(genericConfig); lastErr != nil {
 		return
 	}
-
 	if lastErr = s.InsecureServing.ApplyTo(&insecureServingInfo, &genericConfig.LoopbackClientConfig); lastErr != nil {
 		return
 	}
@@ -424,6 +431,7 @@ func buildGenericConfig(
 		return
 	}
 
+	// 配置 openapi相关默认参数
 	genericConfig.OpenAPIConfig = genericapiserver.DefaultOpenAPIConfig(generatedopenapi.GetOpenAPIDefinitions, openapinamer.NewDefinitionNamer(legacyscheme.Scheme, extensionsapiserver.Scheme, aggregatorscheme.Scheme))
 	genericConfig.OpenAPIConfig.Info.Title = "Kubernetes"
 	genericConfig.LongRunningFunc = filters.BasicLongRunningRequestCheck(
@@ -434,6 +442,8 @@ func buildGenericConfig(
 	kubeVersion := version.Get()
 	genericConfig.Version = &kubeVersion
 
+	// storageFactoryConfig 里面 应该是含有 一些apiserver运行的关键东西
+	// 已知storageFactoryConfig 里面含有的  apiVersion: extensions/v1beta1  这些应该是在这里定义的 这种定义配置
 	storageFactoryConfig := kubeapiserver.NewStorageFactoryConfig()
 	storageFactoryConfig.APIResourceConfig = genericConfig.MergedResourceConfig
 	completedStorageFactoryConfig, err := storageFactoryConfig.Complete(s.Etcd)
