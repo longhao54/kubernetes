@@ -198,14 +198,18 @@ func (s *EtcdOptions) ApplyWithStorageFactoryTo(factory serverstorage.StorageFac
 }
 
 func (s *EtcdOptions) addEtcdHealthEndpoint(c *server.Config) error {
+
 	healthCheck, err := storagefactory.CreateHealthCheck(s.StorageConfig)
 	if err != nil {
 		return err
 	}
-	c.AddHealthChecks(healthz.NamedCheck("etcd", func(r *http.Request) error {
-		return healthCheck()
-	}))
+	// 可以理解为注册了一个 etcd 的healthcheck  只支持 etcd3 的
+	c.AddHealthChecks(
+		healthz.NamedCheck("etcd", func(r *http.Request) error {
+			return healthCheck()
+		}))
 
+	// 带 --encryption-provider-config 启动进入这个逻辑  可忽略
 	if s.EncryptionProviderConfigFilepath != "" {
 		kmsPluginHealthzChecks, err := encryptionconfig.GetKMSPluginHealthzCheckers(s.EncryptionProviderConfigFilepath)
 		if err != nil {

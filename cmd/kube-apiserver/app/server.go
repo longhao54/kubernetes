@@ -451,6 +451,8 @@ func buildGenericConfig(
 		lastErr = err
 		return
 	}
+
+	// 也是好像对 apigroup做了一些处理 然后对带两个不常用的 etcd启动参数时也有做一些处理
 	storageFactory, lastErr = completedStorageFactoryConfig.New()
 	if lastErr != nil {
 		return
@@ -458,6 +460,12 @@ func buildGenericConfig(
 	if genericConfig.EgressSelector != nil {
 		storageFactory.StorageConfig.Transport.EgressLookup = genericConfig.EgressSelector.Lookup
 	}
+
+	// 注册一个 etcd 的 healthcheck
+	// etcd 的health 好像是通过grpc的方式来做的
+	// 疑问 : 里面启动了一个 go func  不确定是不是直接在这里开始启动了 etcd healthchedk 在 etct3.go 的71行有一个 go routine 得细看下这边
+	//  71行里面 wait.PollUntil() 这个是重点 得细看下
+	// 顺便说一下 其他可注册的 check种类有   livezcheck  readyzcheck
 	if lastErr = s.Etcd.ApplyWithStorageFactoryTo(storageFactory, genericConfig); lastErr != nil {
 		return
 	}
@@ -466,12 +474,21 @@ func buildGenericConfig(
 	// Since not every generic apiserver has to support protobufs, we
 	// cannot default to it in generic apiserver and need to explicitly
 	// set it in kube-apiserver.
+
+	// application/vnd.kubernetes.protobuf  这个应该是一个和 openapi相关的一个参数功能
 	genericConfig.LoopbackClientConfig.ContentConfig.ContentType = "application/vnd.kubernetes.protobuf"
 	// Disable compression for self-communication, since we are going to be
 	// on a fast local network
 	genericConfig.LoopbackClientConfig.DisableCompression = true
 
 	kubeClientConfig := genericConfig.LoopbackClientConfig
+
+	// 做了各个apiversion client 的初始化
+	// 个人理解 不一定正确 得待确认 .
+	/*
+		给 个apigroup 的client 做初始化
+		如果选的是 appv1 的话 配置就会去赵 appv1的client 然后做相应的创建资源等工作  得待确认功能
+	*/
 	clientgoExternalClient, err := clientgoclientset.NewForConfig(kubeClientConfig)
 	if err != nil {
 		lastErr = fmt.Errorf("failed to create real external clientset: %v", err)
