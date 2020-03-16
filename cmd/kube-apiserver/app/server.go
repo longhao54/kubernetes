@@ -481,6 +481,7 @@ func buildGenericConfig(
 	// on a fast local network
 	genericConfig.LoopbackClientConfig.DisableCompression = true
 
+	//  api常见的 host path qps等的struct
 	kubeClientConfig := genericConfig.LoopbackClientConfig
 
 	// 做了各个apiversion client 的初始化

@@ -369,6 +369,7 @@ func (c *Clientset) Discovery() discovery.DiscoveryInterface {
 // NewForConfig will generate a rate-limiter in configShallowCopy.
 func NewForConfig(c *rest.Config) (*Clientset, error) {
 	configShallowCopy := *c
+	// 一般使用好像没有这块的特别参数需求 直接采取默认 这段逻辑可以跳过
 	if configShallowCopy.RateLimiter == nil && configShallowCopy.QPS > 0 {
 		if configShallowCopy.Burst <= 0 {
 			return nil, fmt.Errorf("Burst is required to be greater than 0 when RateLimiter is not set and QPS is set to greater than 0")

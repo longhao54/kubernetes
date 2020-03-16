@@ -287,6 +287,7 @@ func RESTClientFor(config *Config) (*RESTClient, error) {
 		return nil, fmt.Errorf("NegotiatedSerializer is required when initializing a RESTClient")
 	}
 
+	//  返回了一个apiclient的 接口  对于使用http 还是https的api 是在这里面规定的 应该是这样
 	baseURL, versionedAPIPath, err := defaultServerUrlFor(config)
 	if err != nil {
 		return nil, err
