@@ -94,6 +94,8 @@ func (config Config) New() (authenticator.Request, *spec.SecurityDefinitions, er
 
 	// front-proxy, BasicAuth methods, local first, then remote
 	// Add the front proxy authenticator if requested
+
+	// kubeadm 生成的api 有这段逻辑 --requestheader-**参数
 	if config.RequestHeaderConfig != nil {
 		requestHeaderAuthenticator := headerrequest.NewDynamicVerifyOptionsSecure(
 			config.RequestHeaderConfig.CAContentProvider.VerifyOptions,
@@ -106,6 +108,7 @@ func (config Config) New() (authenticator.Request, *spec.SecurityDefinitions, er
 	}
 
 	// basic auth
+	// pass
 	if len(config.BasicAuthFile) > 0 {
 		basicAuth, err := newAuthenticatorFromBasicAuthFile(config.BasicAuthFile)
 		if err != nil {
@@ -142,6 +145,8 @@ func (config Config) New() (authenticator.Request, *spec.SecurityDefinitions, er
 		}
 		tokenAuthenticators = append(tokenAuthenticators, serviceAccountAuth)
 	}
+
+	// pass
 	if utilfeature.DefaultFeatureGate.Enabled(features.TokenRequest) && config.ServiceAccountIssuer != "" {
 		serviceAccountAuth, err := newServiceAccountAuthenticator(config.ServiceAccountIssuer, config.ServiceAccountKeyFiles, config.APIAudiences, config.ServiceAccountTokenGetter)
 		if err != nil {
@@ -149,6 +154,8 @@ func (config Config) New() (authenticator.Request, *spec.SecurityDefinitions, er
 		}
 		tokenAuthenticators = append(tokenAuthenticators, serviceAccountAuth)
 	}
+
+	// pass
 	if config.BootstrapToken {
 		if config.BootstrapTokenAuthenticator != nil {
 			// TODO: This can sometimes be nil because of
@@ -161,6 +168,7 @@ func (config Config) New() (authenticator.Request, *spec.SecurityDefinitions, er
 	// cache misses for all requests using the other. While the service account plugin
 	// simply returns an error, the OpenID Connect plugin may query the provider to
 	// update the keys, causing performance hits.
+	// pass
 	if len(config.OIDCIssuerURL) > 0 && len(config.OIDCClientID) > 0 {
 		oidcAuth, err := newAuthenticatorFromOIDCIssuerURL(oidc.Options{
 			IssuerURL:            config.OIDCIssuerURL,
@@ -179,6 +187,8 @@ func (config Config) New() (authenticator.Request, *spec.SecurityDefinitions, er
 		}
 		tokenAuthenticators = append(tokenAuthenticators, oidcAuth)
 	}
+
+	// pass
 	if len(config.WebhookTokenAuthnConfigFile) > 0 {
 		webhookTokenAuth, err := newWebhookTokenAuthenticator(config.WebhookTokenAuthnConfigFile, config.WebhookTokenAuthnVersion, config.WebhookTokenAuthnCacheTTL, config.APIAudiences)
 		if err != nil {
@@ -189,8 +199,12 @@ func (config Config) New() (authenticator.Request, *spec.SecurityDefinitions, er
 
 	if len(tokenAuthenticators) > 0 {
 		// Union the token authenticators
+
+		//
 		tokenAuth := tokenunion.New(tokenAuthenticators...)
 		// Optionally cache authentication results
+
+		// 应该是pass?
 		if config.TokenSuccessCacheTTL > 0 || config.TokenFailureCacheTTL > 0 {
 			tokenAuth = tokencache.New(tokenAuth, true, config.TokenSuccessCacheTTL, config.TokenFailureCacheTTL)
 		}
@@ -205,6 +219,7 @@ func (config Config) New() (authenticator.Request, *spec.SecurityDefinitions, er
 		}
 	}
 
+	// pass
 	if len(authenticators) == 0 {
 		if config.Anonymous {
 			return anonymous.NewAuthenticator(), &securityDefinitions, nil
@@ -212,10 +227,14 @@ func (config Config) New() (authenticator.Request, *spec.SecurityDefinitions, er
 		return nil, &securityDefinitions, nil
 	}
 
+	/* 这和204行 tokenAuth 在 参数 1 和 >1 情况下处理不同  1的时候返回 [0], 否则返回一个struct  作用待查
+	在我手搭和 kubeadm 没特别修改情况下 返回的应该都个struct
+	*/
 	authenticator := union.New(authenticators...)
 
 	authenticator = group.NewAuthenticatedGroupAdder(authenticator)
 
+	// pass
 	if config.Anonymous {
 		// If the authenticator chain returns an error, return an error (don't consider a bad bearer token
 		// or invalid username/password combination anonymous).

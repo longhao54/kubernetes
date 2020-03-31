@@ -132,8 +132,15 @@ func (a *AdmissionOptions) ApplyTo(
 		return fmt.Errorf("admission depends on a Kubernetes core API shared informer, it cannot be nil")
 	}
 
+	/*
+		这里的 pluginNames 就是在 --enable-admission-plugins=NamespaceLifecycle,LimitRanger,SecurityContextDeny,ServiceAccount,ResourceQuota,NodeRestriction
+		这里定义的这些 没定的话应该是走了默认参数
+	*/
 	pluginNames := a.enabledPluginNames()
 
+	/*
+		一般搭建 直接返回一个 struct
+	*/
 	pluginsConfigProvider, err := admission.ReadAdmissionConfiguration(pluginNames, a.ConfigFile, configScheme)
 	if err != nil {
 		return fmt.Errorf("failed to read plugin config: %v", err)

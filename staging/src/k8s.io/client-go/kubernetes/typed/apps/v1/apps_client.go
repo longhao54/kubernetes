@@ -67,14 +67,12 @@ func NewForConfig(c *rest.Config) (*AppsV1Client, error) {
 
 	/*
 		这里client 仅仅是一个 RESTClient的struct 包含了 apippath, http.client 这些东西
-		没太明白下面怎么就变成了 AppsV1Client 的struct值
 	*/
 	client, err := rest.RESTClientFor(&config)
 	if err != nil {
 		return nil, err
 	}
 
-	// 这块没太看明白 interface不太熟悉
 	return &AppsV1Client{client}, nil
 }
 

@@ -117,6 +117,7 @@ func NewSharedInformerFactoryWithOptions(client kubernetes.Interface, defaultRes
 		customResync:     make(map[reflect.Type]time.Duration),
 	}
 
+	// 在启动阶段的时候不会触发这段逻辑  没有给options 传参
 	// Apply all options
 	for _, opt := range options {
 		factory = opt(factory)

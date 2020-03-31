@@ -49,6 +49,8 @@ func (c *Config) New(proxyTransport *http.Transport, serviceResolver webhook.Ser
 	webhookPluginInitializer := webhookinit.NewPluginInitializer(webhookAuthResolverWrapper, serviceResolver)
 
 	var cloudConfig []byte
+
+	// 这段可以pass
 	if c.CloudConfigFile != "" {
 		var err error
 		cloudConfig, err = ioutil.ReadFile(c.CloudConfigFile)

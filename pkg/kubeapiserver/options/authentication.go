@@ -319,14 +319,18 @@ func (s *BuiltInAuthenticationOptions) ToAuthenticationConfig() (kubeauthenticat
 		TokenFailureCacheTTL: s.TokenFailureCacheTTL,
 	}
 
+	// pass
 	if s.Anonymous != nil {
 		ret.Anonymous = s.Anonymous.Allow
 	}
 
+	// pass
 	if s.BootstrapToken != nil {
 		ret.BootstrapToken = s.BootstrapToken.Enable
 	}
 
+	//--client-ca-file=/etc/kubernetes/ssl/ca.pem
+	// 读这个ca 的内容做些处理
 	if s.ClientCert != nil {
 		var err error
 		ret.ClientCAContentProvider, err = s.ClientCert.GetClientCAContentProvider()
@@ -335,6 +339,7 @@ func (s *BuiltInAuthenticationOptions) ToAuthenticationConfig() (kubeauthenticat
 		}
 	}
 
+	//  pass
 	if s.OIDC != nil {
 		ret.OIDCCAFile = s.OIDC.CAFile
 		ret.OIDCClientID = s.OIDC.ClientID
@@ -347,10 +352,13 @@ func (s *BuiltInAuthenticationOptions) ToAuthenticationConfig() (kubeauthenticat
 		ret.OIDCRequiredClaims = s.OIDC.RequiredClaims
 	}
 
+	// pass
 	if s.PasswordFile != nil {
 		ret.BasicAuthFile = s.PasswordFile.BasicAuthFile
 	}
 
+	// kubeadm 安装的集群 apiserver会把 s.RequestHeader 系列的参数都给带上去
+	// 返回一个struct 里面内容就是 RequestHeader 系列参数 带上去的 string
 	if s.RequestHeader != nil {
 		var err error
 		ret.RequestHeaderConfig, err = s.RequestHeader.ToAuthenticationRequestHeaderConfig()
@@ -360,6 +368,8 @@ func (s *BuiltInAuthenticationOptions) ToAuthenticationConfig() (kubeauthenticat
 	}
 
 	ret.APIAudiences = s.APIAudiences
+
+	//--service-account-key-file=/etc/kubernetes/pki/sa.pub  一般只会用这个参数
 	if s.ServiceAccounts != nil {
 		if s.ServiceAccounts.Issuer != "" && len(s.APIAudiences) == 0 {
 			ret.APIAudiences = authenticator.Audiences{s.ServiceAccounts.Issuer}
@@ -369,10 +379,12 @@ func (s *BuiltInAuthenticationOptions) ToAuthenticationConfig() (kubeauthenticat
 		ret.ServiceAccountLookup = s.ServiceAccounts.Lookup
 	}
 
+	// --token-auth-file=/etc/kubernetes/token.csv  我手搭的集群由这个 kubeadm 生成的没带这个参数
 	if s.TokenFile != nil {
 		ret.TokenAuthFile = s.TokenFile.TokenFile
 	}
 
+	// pass
 	if s.WebHook != nil {
 		ret.WebhookTokenAuthnConfigFile = s.WebHook.ConfigFile
 		ret.WebhookTokenAuthnVersion = s.WebHook.Version

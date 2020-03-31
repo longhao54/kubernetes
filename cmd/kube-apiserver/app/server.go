@@ -487,14 +487,19 @@ func buildGenericConfig(
 	// 做了各个apiversion client 的初始化
 	// 个人理解 不一定正确 得待确认 .
 	/*
-		给 个apigroup 的client 做初始化
-		如果选的是 appv1 的话 配置就会去赵 appv1的client 然后做相应的创建资源等工作  得待确认功能
+			给 个apigroup 的client 做初始化
+			如果选的是 appv1 的话 配置就会去赵 appv1的client 然后做相应的创建资源等工作  得待确认功能
+		    clientgoExternalClient 是很多 apiclient的struct 每个具体的client里面都是interface  实现了 put get 等方法
 	*/
 	clientgoExternalClient, err := clientgoclientset.NewForConfig(kubeClientConfig)
 	if err != nil {
 		lastErr = fmt.Errorf("failed to create real external clientset: %v", err)
 		return
 	}
+
+	/*  一个struct 用处还不太清楚  在这里面的逻辑开始阶段没有用上 只是初始化了一个struct 返回
+	    这个struct 用在513 行    授权模式使用. 手搭和 kubeadm 都是用 rbac,node模式. 在这两个对应的授权方式里用到这个struct参数
+	*/
 	versionedInformers = clientgoinformers.NewSharedInformerFactory(clientgoExternalClient, 10*time.Minute)
 
 	genericConfig.Authentication.Authenticator, genericConfig.OpenAPIConfig.SecurityDefinitions, err = BuildAuthenticator(s, clientgoExternalClient, versionedInformers)
@@ -503,12 +508,18 @@ func buildGenericConfig(
 		return
 	}
 
+	//  https://kubernetes.io/zh/docs/reference/access-authn-authz/authorization/  授权相关 api 和 kubelet
 	genericConfig.Authorization.Authorizer, genericConfig.RuleResolver, err = BuildAuthorizer(s, versionedInformers)
 	if err != nil {
 		lastErr = fmt.Errorf("invalid authorization config: %v", err)
 		return
 	}
 	if !sets.NewString(s.Authorization.Modes...).Has(modes.ModeRBAC) {
+
+		/*
+			map
+			const PostStartHookName = "rbac/bootstrap-roles"
+		*/
 		genericConfig.DisabledPostStartHooks.Insert(rbacrest.PostStartHookName)
 	}
 
@@ -517,10 +528,15 @@ func buildGenericConfig(
 		LoopbackClientConfig: genericConfig.LoopbackClientConfig,
 		CloudConfigFile:      s.CloudProvider.CloudConfigFile,
 	}
+
+	/*
+		return struct  有 apiserver 地址信息
+	*/
 	serviceResolver = buildServiceResolver(s.EnableAggregatorRouting, genericConfig.LoopbackClientConfig.Host, versionedInformers)
 
 	authInfoResolverWrapper := webhook.NewDefaultAuthenticationInfoResolverWrapper(proxyTransport, genericConfig.LoopbackClientConfig)
 
+	//  这段是 和 audit-policy-file  --audit 相关的参数相关的 日志审计 日志审计路径这些 搭建的时候没用到这个地方参数
 	lastErr = s.Audit.ApplyTo(
 		genericConfig,
 		genericConfig.LoopbackClientConfig,
@@ -555,11 +571,15 @@ func buildGenericConfig(
 }
 
 // BuildAuthenticator constructs the authenticator
+// --authorization-mode=RBAC,Node
 func BuildAuthenticator(s *options.ServerRunOptions, extclient clientgoclientset.Interface, versionedInformer clientgoinformers.SharedInformerFactory) (authenticator.Request, *spec.SecurityDefinitions, error) {
+	//  下面这个方法对 kubeapi自己的cafile这块 做了点处理
 	authenticatorConfig, err := s.Authentication.ToAuthenticationConfig()
 	if err != nil {
 		return nil, nil, err
 	}
+
+	// 这段逻辑 kubeadm 和手搭都没有使用
 	if s.Authentication.ServiceAccounts.Lookup || utilfeature.DefaultFeatureGate.Enabled(features.TokenRequest) {
 		authenticatorConfig.ServiceAccountTokenGetter = serviceaccountcontroller.NewGetterFromClient(
 			extclient,
@@ -569,6 +589,8 @@ func BuildAuthenticator(s *options.ServerRunOptions, extclient clientgoclientset
 		)
 	}
 	authenticatorConfig.BootstrapTokenAuthenticator = bootstrap.NewTokenAuthenticator(
+		// 这里面的参数最终执行完 是一个 secretNamespaceLister  的 struct  这里面就是通过interface的形式 层层转换成的一个另一个的struct 最后返回了一个  secretNamespaceLister 的 struct 实例
+		// 这个方式有点秀  回头要参考一下
 		versionedInformer.Core().V1().Secrets().Lister().Secrets(v1.NamespaceSystem),
 	)
 
@@ -695,6 +717,7 @@ func Complete(s *options.ServerRunOptions) (completedServerRunOptions, error) {
 
 func buildServiceResolver(enabledAggregatorRouting bool, hostname string, informer clientgoinformers.SharedInformerFactory) webhook.ServiceResolver {
 	var serviceResolver webhook.ServiceResolver
+	// enabledAggregatorRouting == False
 	if enabledAggregatorRouting {
 		serviceResolver = aggregatorapiserver.NewEndpointServiceResolver(
 			informer.Core().V1().Services().Lister(),

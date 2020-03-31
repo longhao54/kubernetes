@@ -302,11 +302,18 @@ func (o *AuditOptions) ApplyTo(
 	}
 
 	// 1. Build policy checker
+	/*
+		一般用不到 audit-policy-file  所以这段没有处理逻辑 返回 nil
+		这个参数和 审计日志有关
+	*/
 	checker, err := o.newPolicyChecker()
 	if err != nil {
 		return err
 	}
 
+	/*
+		这段处理逻辑也会被跳过  和 audit-log-path 有关
+	*/
 	// 2. Build log backend
 	var logBackend audit.Backend
 	if w := o.LogOptions.getWriter(); w != nil {
@@ -317,6 +324,7 @@ func (o *AuditOptions) ApplyTo(
 		}
 	}
 
+	// 一样 pass  audit-webhook-相关参数 不太会用
 	// 3. Build webhook backend
 	var webhookBackend audit.Backend
 	if o.WebhookOptions.enabled() {
@@ -336,6 +344,7 @@ func (o *AuditOptions) ApplyTo(
 	}
 
 	// 4. Apply dynamic options.
+	// pass
 	var dynamicBackend audit.Backend
 	if o.DynamicOptions.enabled() {
 		// if dynamic is enabled the webhook and log backends need to be wrapped in an enforced backend with the static policy

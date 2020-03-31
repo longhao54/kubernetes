@@ -56,6 +56,9 @@ func makeAbs(path, base string) (string, error) {
 // It does this to preserve backward compatibility when admission control files were opaque.
 // It returns an error if the file did not exist.
 func ReadAdmissionConfiguration(pluginNames []string, configFilePath string, configScheme *runtime.Scheme) (ConfigProvider, error) {
+	/*
+		configFIlePath 启动的时候不会给这个加参数 所以直接就进了if逻辑返回 不会往下面继续进行
+	*/
 	if configFilePath == "" {
 		return configProvider{config: &apiserver.AdmissionConfiguration{}}, nil
 	}

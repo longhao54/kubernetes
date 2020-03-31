@@ -84,6 +84,7 @@ func (a *AdmissionOptions) Validate() []error {
 	if a == nil {
 		return nil
 	}
+
 	errs := []error{}
 	if a.PluginNames != nil &&
 		(a.GenericAdmission.EnablePlugins != nil || a.GenericAdmission.DisablePlugins != nil) {
@@ -115,6 +116,7 @@ func (a *AdmissionOptions) ApplyTo(
 		return nil
 	}
 
+	// pass
 	if a.PluginNames != nil {
 		// pass PluginNames to generic AdmissionOptions
 		a.GenericAdmission.EnablePlugins, a.GenericAdmission.DisablePlugins = computePluginNames(a.PluginNames, a.GenericAdmission.RecommendedPluginOrder)
