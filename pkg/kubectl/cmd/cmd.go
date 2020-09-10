@@ -28,54 +28,21 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 	cliflag "k8s.io/component-base/cli/flag"
 	cmdpkg "k8s.io/kubectl/pkg/cmd"
-	"k8s.io/kubectl/pkg/cmd/annotate"
 	"k8s.io/kubectl/pkg/cmd/apiresources"
-	"k8s.io/kubectl/pkg/cmd/apply"
-	"k8s.io/kubectl/pkg/cmd/attach"
-	"k8s.io/kubectl/pkg/cmd/autoscale"
-	"k8s.io/kubectl/pkg/cmd/certificates"
-	"k8s.io/kubectl/pkg/cmd/clusterinfo"
-	"k8s.io/kubectl/pkg/cmd/completion"
-	cmdconfig "k8s.io/kubectl/pkg/cmd/config"
-	"k8s.io/kubectl/pkg/cmd/create"
-	"k8s.io/kubectl/pkg/cmd/delete"
 	"k8s.io/kubectl/pkg/cmd/describe"
-	"k8s.io/kubectl/pkg/cmd/diff"
-	"k8s.io/kubectl/pkg/cmd/drain"
-	"k8s.io/kubectl/pkg/cmd/edit"
 	cmdexec "k8s.io/kubectl/pkg/cmd/exec"
 	"k8s.io/kubectl/pkg/cmd/explain"
-	"k8s.io/kubectl/pkg/cmd/expose"
 	"k8s.io/kubectl/pkg/cmd/get"
-	"k8s.io/kubectl/pkg/cmd/label"
 	"k8s.io/kubectl/pkg/cmd/logs"
 	"k8s.io/kubectl/pkg/cmd/options"
-	"k8s.io/kubectl/pkg/cmd/patch"
 	"k8s.io/kubectl/pkg/cmd/plugin"
-	"k8s.io/kubectl/pkg/cmd/portforward"
-	"k8s.io/kubectl/pkg/cmd/proxy"
-	"k8s.io/kubectl/pkg/cmd/replace"
-	"k8s.io/kubectl/pkg/cmd/rollingupdate"
-	"k8s.io/kubectl/pkg/cmd/rollout"
-	"k8s.io/kubectl/pkg/cmd/run"
-	"k8s.io/kubectl/pkg/cmd/scale"
-	"k8s.io/kubectl/pkg/cmd/set"
-	"k8s.io/kubectl/pkg/cmd/taint"
-	"k8s.io/kubectl/pkg/cmd/top"
 	cmdutil "k8s.io/kubectl/pkg/cmd/util"
 	"k8s.io/kubectl/pkg/cmd/version"
-	"k8s.io/kubectl/pkg/cmd/wait"
 	"k8s.io/kubectl/pkg/util/i18n"
 	"k8s.io/kubectl/pkg/util/templates"
-	"k8s.io/kubernetes/pkg/kubectl/cmd/auth"
-	"k8s.io/kubernetes/pkg/kubectl/cmd/convert"
-	"k8s.io/kubernetes/pkg/kubectl/cmd/cp"
-
-	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"k8s.io/kubectl/pkg/cmd/kustomize"
 )
 
 const (
@@ -486,42 +453,10 @@ func NewKubectlCommand(in io.Reader, out, err io.Writer) *cobra.Command {
 
 	groups := templates.CommandGroups{
 		{
-			Message: "Basic Commands (Beginner):",
-			Commands: []*cobra.Command{
-				create.NewCmdCreate(f, ioStreams),
-				expose.NewCmdExposeService(f, ioStreams),
-				run.NewCmdRun(f, ioStreams),
-				set.NewCmdSet(f, ioStreams),
-			},
-		},
-		{
 			Message: "Basic Commands (Intermediate):",
 			Commands: []*cobra.Command{
 				explain.NewCmdExplain("kubectl", f, ioStreams),
 				get.NewCmdGet("kubectl", f, ioStreams),
-				edit.NewCmdEdit(f, ioStreams),
-				delete.NewCmdDelete(f, ioStreams),
-			},
-		},
-		{
-			Message: "Deploy Commands:",
-			Commands: []*cobra.Command{
-				rollout.NewCmdRollout(f, ioStreams),
-				rollingupdate.NewCmdRollingUpdate(f, ioStreams),
-				scale.NewCmdScale(f, ioStreams),
-				autoscale.NewCmdAutoscale(f, ioStreams),
-			},
-		},
-		{
-			Message: "Cluster Management Commands:",
-			Commands: []*cobra.Command{
-				certificates.NewCmdCertificate(f, ioStreams),
-				clusterinfo.NewCmdClusterInfo(f, ioStreams),
-				top.NewCmdTop(f, ioStreams),
-				drain.NewCmdCordon(f, ioStreams),
-				drain.NewCmdUncordon(f, ioStreams),
-				drain.NewCmdDrain(f, ioStreams),
-				taint.NewCmdTaint(f, ioStreams),
 			},
 		},
 		{
@@ -529,32 +464,7 @@ func NewKubectlCommand(in io.Reader, out, err io.Writer) *cobra.Command {
 			Commands: []*cobra.Command{
 				describe.NewCmdDescribe("kubectl", f, ioStreams),
 				logs.NewCmdLogs(f, ioStreams),
-				attach.NewCmdAttach(f, ioStreams),
 				cmdexec.NewCmdExec(f, ioStreams),
-				portforward.NewCmdPortForward(f, ioStreams),
-				proxy.NewCmdProxy(f, ioStreams),
-				cp.NewCmdCp(f, ioStreams),
-				auth.NewCmdAuth(f, ioStreams),
-			},
-		},
-		{
-			Message: "Advanced Commands:",
-			Commands: []*cobra.Command{
-				diff.NewCmdDiff(f, ioStreams),
-				apply.NewCmdApply("kubectl", f, ioStreams),
-				patch.NewCmdPatch(f, ioStreams),
-				replace.NewCmdReplace(f, ioStreams),
-				wait.NewCmdWait(f, ioStreams),
-				convert.NewCmdConvert(f, ioStreams),
-				kustomize.NewCmdKustomize(ioStreams),
-			},
-		},
-		{
-			Message: "Settings Commands:",
-			Commands: []*cobra.Command{
-				label.NewCmdLabel(f, ioStreams),
-				annotate.NewCmdAnnotate("kubectl", f, ioStreams),
-				completion.NewCmdCompletion(ioStreams.Out, ""),
 			},
 		},
 	}
@@ -583,7 +493,6 @@ func NewKubectlCommand(in io.Reader, out, err io.Writer) *cobra.Command {
 	}
 
 	cmds.AddCommand(alpha)
-	cmds.AddCommand(cmdconfig.NewCmdConfig(f, clientcmd.NewDefaultPathOptions(), ioStreams))
 	cmds.AddCommand(plugin.NewCmdPlugin(f, ioStreams))
 	cmds.AddCommand(version.NewCmdVersion(f, ioStreams))
 	cmds.AddCommand(apiresources.NewCmdAPIVersions(f, ioStreams))
